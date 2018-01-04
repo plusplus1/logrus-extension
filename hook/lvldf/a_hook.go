@@ -57,6 +57,7 @@ func InitLevelDividedFileLogger(configYaml string) {
 		if lvl, e := logrus.ParseLevel(cfg.Level); e != nil {
 			log.Panicf("parse config level fail, error=%v", e.Error())
 		} else {
+			logrus.SetLevel(lvl)
 			logger.level = lvl
 		}
 		if len(logger.Levels()) < 1 {
