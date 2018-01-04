@@ -1,0 +1,4 @@
+directory: "./logs"
+filename: "test"
+level: "info"
+daily: true
