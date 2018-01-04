@@ -3,6 +3,7 @@ package lvldf
 import (
 	"io/ioutil"
 	"log"
+	"strings"
 )
 
 import (
@@ -25,6 +26,7 @@ func newConfig(configYaml string) *configure {
 	if bytes, err = ioutil.ReadFile(configYaml); err == nil {
 		var cfg = configure{Level: logrus.InfoLevel.String(), Daily: true}
 		if err = yaml.Unmarshal(bytes, &cfg); err == nil {
+			cfg.Level = strings.ToLower(cfg.Level)
 			return &cfg
 		}
 	}
