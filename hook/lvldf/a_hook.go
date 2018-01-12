@@ -39,6 +39,11 @@ type levelDividedFileLogger struct {
 
 // InitLevelDividedFileLogger, init
 func InitLevelDividedFileLogger(configYaml string) {
+	InitLevelDividedFileLoggerV2(configYaml, nil)
+}
+
+// InitLevelDividedFileLoggerV2, init
+func InitLevelDividedFileLoggerV2(configYaml string, lg *logrus.Logger) {
 
 	logger := &levelDividedFileLogger{writers: make(map[logrus.Level]*mutexWriter)}
 
@@ -74,7 +79,11 @@ func InitLevelDividedFileLogger(configYaml string) {
 		logger.writers[lvl] = newMutexWriter(lvl, logger)
 	}
 
-	logrus.AddHook(logger)
+	if lg == nil {
+		logrus.AddHook(logger)
+	} else {
+		lg.AddHook(logger)
+	}
 	return
 }
 
