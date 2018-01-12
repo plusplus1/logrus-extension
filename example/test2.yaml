@@ -1,4 +1,4 @@
 directory: "./logs"
-filename: "test"
+filename: "test2"
 level: "info"
 daily: true
