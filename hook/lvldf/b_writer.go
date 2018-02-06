@@ -26,7 +26,7 @@ type mutexWriter struct {
 
 	logFd       *os.File
 	logFileName string
-	logger      *log.Logger
+	// logger      *log.Logger
 
 	lockFd       int
 	lockFileName string
@@ -49,8 +49,13 @@ func (w *mutexWriter) writeMessage(level logrus.Level, logTime time.Time, messag
 		w.checkAndDoRotate(logTime)
 	}
 
-	if w.logger != nil {
-		w.logger.Print(message)
+	// if w.logger != nil {
+	//	w.logger.Print(message)
+	// }
+
+	if w.logFd != nil {
+		_, err := w.logFd.WriteString(message)
+		return err
 	}
 	return nil
 
@@ -95,7 +100,7 @@ func (w *mutexWriter) setFd(fd *os.File) {
 	}
 
 	w.logFd = fd
-	w.logger = log.New(w, "", 0)
+	// w.logger = log.New(w, "", 0)
 	if fdInfo, _ := w.logFd.Stat(); fdInfo != nil {
 		w.lastRotateTime = fdInfo.ModTime()
 	} else {
