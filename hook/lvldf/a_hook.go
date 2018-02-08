@@ -11,7 +11,6 @@ import (
 const (
 	minLevel    = logrus.ErrorLevel
 	rotateByDay = "D"
-	// rotateByHour = "H"
 )
 
 var (
@@ -35,6 +34,9 @@ type levelDividedFileLogger struct {
 	// log split related fields
 	rotateEnable bool
 	rotateBy     string
+
+	// buf enable
+	bufferEnable bool
 }
 
 // InitLevelDividedFileLogger, init
@@ -72,6 +74,10 @@ func InitLevelDividedFileLoggerV2(configYaml string, lg *logrus.Logger) {
 		if cfg.Daily {
 			logger.rotateEnable = true
 			logger.rotateBy = rotateByDay
+		}
+
+		if cfg.Buffer {
+			logger.bufferEnable = true
 		}
 	}
 

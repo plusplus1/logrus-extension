@@ -1,11 +1,10 @@
 package lvldf
 
 import (
-	"bytes"
+	"bufio"
 	"crypto/md5"
 	"errors"
 	"fmt"
-	"io"
 	"log"
 	"os"
 	"path/filepath"
@@ -13,11 +12,17 @@ import (
 	"sync"
 	"time"
 )
+
 import (
 	"golang.org/x/sys/unix"
 )
+
 import (
 	"github.com/sirupsen/logrus"
+)
+
+const (
+	bufSizeForWriter = 1024 * 10
 )
 
 type mutexWriter struct {
@@ -28,9 +33,9 @@ type mutexWriter struct {
 
 	logFd       *os.File
 	logFileName string
-	logBuffer   *bytes.Buffer
-	maxBufSize  int
-	bufMutex    *sync.Mutex
+
+	bufMutex  *sync.Mutex
+	bufWriter *bufio.Writer
 
 	lockFd       int
 	lockFileName string
@@ -40,15 +45,17 @@ type mutexWriter struct {
 
 func newMutexWriter(level logrus.Level, logger *levelDividedFileLogger) *mutexWriter {
 	w := &mutexWriter{
-		level:      level,
-		hook:       logger,
-		maxBufSize: 1024000,
-		bufMutex:   &sync.Mutex{},
-		logBuffer:  bytes.NewBuffer(nil),
+		level:    level,
+		hook:     logger,
+		bufMutex: &sync.Mutex{},
 	}
 	fileName := fmt.Sprintf("%s.%s", logger.logName, levelFileSuffixMap[level])
 	w.logFileName = filepath.Join(logger.logDirectory, fileName)
-	go w.syncPerSeconds()
+
+	if w.hook.bufferEnable {
+		go w.syncPerSeconds()
+	}
+
 	return w
 }
 
@@ -58,10 +65,13 @@ func (w *mutexWriter) writeMessage(level logrus.Level, logTime time.Time, messag
 		w.checkAndDoRotate(logTime)
 	}
 
-	if w.logBuffer != nil {
+	if w.hook.bufferEnable && w.bufWriter != nil {
 		w.bufMutex.Lock()
-		_, err := w.logBuffer.WriteString(message)
+		_, err := w.bufWriter.WriteString(message)
 		w.bufMutex.Unlock()
+		return err
+	} else if w.logFd != nil {
+		_, err := w.logFd.WriteString(message)
 		return err
 	}
 
@@ -79,20 +89,12 @@ func (w *mutexWriter) syncPerSeconds() {
 }
 
 func (w *mutexWriter) syncOnce() {
-	// fmt.Println("syncOnce , ", w.level)
-	w.bufMutex.Lock()
-	if w.logBuffer.Len() > 0 && w.logFd != nil {
-		io.Copy(w.logFd, w.logBuffer)
+
+	if w.bufWriter != nil {
+		w.bufMutex.Lock()
+		w.bufWriter.Flush()
+		w.bufMutex.Unlock()
 	}
-	w.bufMutex.Unlock()
-
-}
-
-// Write, io.Writer
-func (w *mutexWriter) Write(b []byte) (int, error) {
-	w.Lock()
-	defer w.Unlock()
-	return w.logFd.Write(b)
 }
 
 func (w *mutexWriter) startLogWriter() error {
@@ -101,7 +103,6 @@ func (w *mutexWriter) startLogWriter() error {
 		lockSign := fmt.Sprintf("%x", md5.Sum([]byte(w.logFileName)))
 		parts := strings.Split(w.logFileName, "/")
 		w.lockFileName = filepath.Join(os.TempDir(), parts[len(parts)-1]+"."+lockSign+".lock")
-		// fmt.Println(w.lockFileName)
 		w.lockFd, _ = unix.Open(w.lockFileName, os.O_WRONLY|os.O_APPEND|os.O_CREATE, 0755)
 	}
 
@@ -129,6 +130,14 @@ func (w *mutexWriter) setFd(fd *os.File) {
 
 	w.logFd = fd
 
+	if w.hook.bufferEnable {
+		if w.bufWriter == nil {
+			w.bufWriter = bufio.NewWriterSize(w.logFd, bufSizeForWriter)
+		} else {
+			w.bufWriter.Reset(w.logFd)
+		}
+	}
+
 	if fdInfo, _ := w.logFd.Stat(); fdInfo != nil {
 		w.lastRotateTime = fdInfo.ModTime()
 	} else {
@@ -142,15 +151,6 @@ func (w *mutexWriter) checkShouldRotate(logTime time.Time) bool {
 	}
 
 	switch w.hook.rotateBy {
-	/*
-		case rotateByHour:
-			if w.lastRotateTime.Hour() != logTime.Hour() {
-				return true
-			}
-			if w.lastRotateTime.Day() != logTime.Day() {
-				return true
-			}
-	*/
 	case rotateByDay:
 		/*
 
@@ -193,7 +193,6 @@ func (w *mutexWriter) checkAndDoRotate(logTime time.Time) error {
 
 	doBackup := func() error {
 		_, e1 := os.Lstat(w.logFileName)
-		// backupFile := w.logFileName + "." + w.lastRotateTime.Format("2006-01-02_15-04")
 		backupFile := w.logFileName + "." + w.lastRotateTime.Format("2006-01-02")
 
 		_, e2 := os.Lstat(backupFile)
@@ -249,16 +248,15 @@ func (w *mutexWriter) destroy() {
 
 func (w *mutexWriter) flush() {
 	if w.logFd != nil {
-
-		if w.logBuffer != nil {
-			w.bufMutex.Lock()
-			if w.logBuffer.Len() > 0 {
-				io.Copy(w.logFd, w.logBuffer)
+		if w.hook.bufferEnable {
+			if w.bufWriter != nil {
+				w.bufMutex.Lock()
+				w.bufWriter.Flush()
+				w.bufMutex.Unlock()
 			}
-			w.bufMutex.Unlock()
+		} else {
+			w.logFd.Sync()
 		}
-
-		w.logFd.Sync()
 	}
 }
 
@@ -276,5 +274,4 @@ func (w *mutexWriter) deleteOldLog() {
 		}
 		break
 	}
-
 }

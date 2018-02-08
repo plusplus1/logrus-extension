@@ -12,6 +12,7 @@
 > - 多进程记录同一份日志的时候保证切割安全
 > - 自动清理过期日志(30天)
 > - 支持Yaml配置初始化
+> - 支持日志缓冲输出(配置buffer = true开启缓冲)
 
 
 配置参考[test.yaml](example/test.yaml)
@@ -20,6 +21,7 @@ directory: "./logs"
 filename: "test"
 level: "info"
 daily: true
+buffer: false
 ```
 
 效果预览<br>
