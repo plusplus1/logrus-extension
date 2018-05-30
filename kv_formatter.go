@@ -1,4 +1,4 @@
-package format
+package logrus_extension
 
 import (
 	"bytes"
@@ -20,28 +20,29 @@ const (
 	fieldKeyError   = "error"
 )
 
-// kvTextFormatter formats logs into text
-type kvTextFormatter struct {
-	// Disable timestamp logging. useful when output is redirected to logging
-	// system that already adds timestamps.
-	DisableTimestamp bool
+type (
+	// kvTextFormatter formats logs into text
+	kvTextFormatter struct {
+		// Disable timestamp logging. useful when output is redirected to logging
+		// system that already adds timestamps.
+		DisableTimestamp bool
 
-	// TimestampFormat to use for display when a full timestamp is printed
-	TimestampFormat string
+		// TimestampFormat to use for display when a full timestamp is printed
+		TimestampFormat string
 
-	// The fields are sorted by default for a consistent output. For applications
-	// that log extremely frequently and don't use the JSON formatter this may not
-	// be desired.
-	DisableSorting bool
+		// The fields are sorted by default for a consistent output. For applications
+		// that log extremely frequently and don't use the JSON formatter this may not
+		// be desired.
+		DisableSorting bool
 
-	KVSeparator byte
+		KVSeparator byte
 
-	sync.Once
+		sync.Once
 
-	hostName string
-}
+		hostName string
+	}
+)
 
-// NewKvTextFormatter, new formatter
 func NewKvTextFormatter() *kvTextFormatter {
 	return &kvTextFormatter{}
 }

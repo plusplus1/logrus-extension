@@ -5,11 +5,6 @@ import (
 )
 
 import (
-	"github.com/plusplus1/logrus-extension/format"
-	"github.com/plusplus1/logrus-extension/hook/lvldf"
-)
-
-import (
 	"github.com/sirupsen/logrus"
 )
 
@@ -19,28 +14,47 @@ var (
 
 // InitFileHook, init from config file
 func InitFileHook(configYaml string) {
-	InitFileHookWithLogger(configYaml, "")
+	InitFileHookWithLogger(configYaml, "root")
 }
 
 // InitFileHookWithLogger, init logger
 func InitFileHookWithLogger(configYaml string, loggerName string) {
 
-	logger := GetLogger(loggerName)
-	logger.Out = ioutil.Discard                            // avoid to print log to screen
-	logger.Formatter = format.NewKvTextFormatter()         // set kv formatter
-	lvldf.InitLevelDividedFileLoggerV2(configYaml, logger) // add file log hook
-
+	logger := initLogger(loggerName)
+	logger.Out = ioutil.Discard                   // avoid to print log to screen
+	logger.Formatter = NewKvTextFormatter()       // set kv formatter
+	registerLvlHookWithLogger(configYaml, logger) // add file log hook
 }
 
-func GetLogger(loggerName string) *logrus.Logger {
+func GetLogger(loggerName string) (logger *logrus.Logger) {
 	if loggerName == "" || loggerName == "root" || loggerName == "ROOT" {
-		return logrus.StandardLogger()
+		loggerName = "root"
 	}
-	if logger, ok := loggerMap[loggerName]; ok {
-		return logger
+	if lg, ok := loggerMap[loggerName]; ok && lg != nil {
+		return lg
+	}
+	return logrus.StandardLogger()
+}
+
+func initLogger(loggerName string) (logger *logrus.Logger) {
+	if loggerName == "" || loggerName == "root" || loggerName == "ROOT" {
+		loggerName = "root"
 	}
 
-	logger := logrus.New()
+	for i := 0; i < 1; i++ {
+		if lg, ok := loggerMap[loggerName]; ok && lg != nil {
+			logger = lg
+			break
+		}
+		if loggerName == "root" {
+			logger = logrus.StandardLogger()
+			break
+		}
+		logger = logrus.New()
+		break
+	}
+
 	loggerMap[loggerName] = logger
-	return logger
+
+	return
 }
