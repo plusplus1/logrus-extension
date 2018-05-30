@@ -1,6 +1,8 @@
 logs/
 */logs/
 
+vendor/github.com
+
 # Binaries for programs and plugins
 *.exe
 *.dll
