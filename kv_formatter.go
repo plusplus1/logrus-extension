@@ -49,7 +49,7 @@ func NewKvTextFormatter() *kvTextFormatter {
 
 func (kvFmt *kvTextFormatter) init(entry *logrus.Entry) {
 	if kvFmt.TimestampFormat == "" {
-		kvFmt.TimestampFormat = "2006-01-02 15:04:05"
+		kvFmt.TimestampFormat = "2006-01-02 15:04:05.000"
 	}
 	if kvFmt.KVSeparator == byte(0) {
 		kvFmt.KVSeparator = '\t'
