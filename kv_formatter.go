@@ -143,6 +143,6 @@ func (kvFmt *kvTextFormatter) appendValue(buf *bytes.Buffer, value interface{}) 
 	if !kvFmt.needsQuoting(stringVal) {
 		buf.WriteString(stringVal)
 	} else {
-		buf.WriteString(fmt.Sprintf("%q", stringVal))
+		buf.WriteString(fmt.Sprintf("%v", stringVal))
 	}
 }
