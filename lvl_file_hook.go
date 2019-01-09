@@ -138,6 +138,10 @@ func registerLvlHookWithLogger(configYaml string, logger *logrus.Logger) {
 			log.Panicf("conf [%s] invalid, filename empty", configYaml)
 		}
 		aHook.logName = conf.Filename
+		if strings.Index(aHook.logName, "${hostname}") > 0 {
+			osHostName, _ := os.Hostname()
+			aHook.logName = strings.Replace(aHook.logName, "${hostname}", osHostName, 1)
+		}
 
 		if aHook.level, e = logrus.ParseLevel(conf.Level); e != nil {
 			log.Panicf("conf [%s] invalid, level parse fail", configYaml)
