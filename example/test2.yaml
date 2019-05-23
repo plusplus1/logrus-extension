@@ -1,4 +1,0 @@
-directory: "./logs"
-filename: "test2"
-level: "info"
-daily: true

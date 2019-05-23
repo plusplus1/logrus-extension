@@ -1,57 +1,94 @@
 package main
 
 import (
+	"encoding/json"
 	"errors"
+	"os"
+	"os/signal"
+	"syscall"
 	"time"
 
+	"github.com/xgo11/stdlog"
+
+	"github.com/juju/fslock"
 	"github.com/plusplus1/logrus-extension"
 	"github.com/sirupsen/logrus"
 )
 
-func main() {
+type sm map[string]interface{}
+
+func (s sm) String() string {
+	bs, _ := json.Marshal(s)
+	return string(bs)
+}
+
+var log = stdlog.Std
+
+func testLog() {
 
 	logrus_extension.InitFileHook("test.yaml")
+	demoMap := map[string]interface{}{
+		"aaa": 1,
+	}
+	m2 := sm(demoMap)
 
-	logrus_extension.InitFileHookWithLogger("test2.yaml", "test2")
-
-	go func() {
-
-		loggerTest2 := logrus_extension.GetLogger("test2")
-		for {
-			fields := logrus.Fields{
-				"a":     1,
-				"b":     "b",
-				"e":     errors.New("test error"),
-				"c":     "ccc\nccc\tddd",
-				"d":     "\tabcd",
-				"zh_CN": "中文字符",
-			}
-
-			loggerTest2.WithFields(fields).Info("message")
-			loggerTest2.WithFields(fields).Debug("message")
-			loggerTest2.WithFields(fields).Warn("message")
-			loggerTest2.WithFields(fields).Error("message")
-
-			time.Sleep(100 * time.Millisecond)
-		}
-
-	}()
-	for {
+	fff := func() {
 
 		fields := logrus.Fields{
 			"a":     1,
 			"b":     "b",
 			"e":     errors.New("test error"),
-			"c":     "ccc\nccc\tddd",
-			"d":     "\tabcd",
+			"c":     "cccccctddd",
+			"d":     "tabcd",
 			"zh_CN": "中文字符",
+
+			"m2":   m2,
+			"demo": demoMap,
 		}
 
-		logrus.WithFields(fields).Info("message")
-		logrus.WithFields(fields).Debug("message")
-		logrus.WithFields(fields).Warn("message")
-		logrus.WithFields(fields).Error("message")
+		for {
+			logrus.WithFields(fields).Info("message")
+			logrus.WithFields(fields).Debug("message")
+			logrus.WithFields(fields).Warn("message")
+			logrus.WithFields(fields).Error("message")
 
-		time.Sleep(100 * time.Millisecond)
+			time.Sleep(5 * time.Microsecond)
+		}
 	}
+
+	go fff()
+	go fff()
+
+}
+
+func testLock() {
+	lockFile := "/tmp/abcde.lock"
+	fc := func(id int) {
+		for i := 0; i < 100; i++ {
+			lc := fslock.New(lockFile)
+			if e := lc.Lock(); e == nil {
+				log.Infof("g=%d\tlock=ok", id)
+				time.Sleep(3 * time.Second)
+				if e = lc.Unlock(); e != nil {
+					log.Errorf("g=%d\tlock=ok\tunlock=fail\terr=%v", id, e)
+				}
+			} else {
+				log.Errorf("g=%d\tlock=fail\terr=%v", id, e)
+			}
+		}
+	}
+	go fc(1)
+	go fc(2)
+}
+func main() {
+
+	//testLock()
+
+	testLog()
+
+	ch := make(chan os.Signal)
+
+	signal.Notify(ch, syscall.SIGINT, syscall.SIGTERM)
+
+	<-ch
 }

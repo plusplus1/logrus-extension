@@ -1,6 +1,5 @@
 directory: "./logs"
 filename: "test"
-level: "info"
-daily: true
-buffer: false
+level: "error"
+
 

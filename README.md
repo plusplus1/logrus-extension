@@ -8,11 +8,10 @@
 
 ### 1. **hook/lvldf**
 > - 按日志级别分别输出到不同的日志文件
-> - 自动按天切割日志
+> - 按时间自动切割文件，默认按天
 > - 多进程记录同一份日志的时候保证切割安全
 > - 自动清理过期日志(30天)
 > - 支持Yaml配置初始化
-> - 支持日志缓冲输出(配置buffer = true开启缓冲)
 
 
 配置参考[test.yaml](example/test.yaml)
@@ -20,8 +19,9 @@
 directory: "./logs"
 filename: "test"
 level: "info"
-daily: true
-buffer: false
+
+# 不配置的情况下按天切割
+rotate: d
 ```
 
 效果预览<br>
@@ -51,35 +51,7 @@ import (
 
 func main() {
 
-	logrus_extension.InitFileHook("test.yaml")
-
-	logrus_extension.InitFileHookWithLogger("test2.yaml", "test2")
-
-
-	// 打印日志到test2
-	go func() {
-
-		loggerTest2 := logrus_extension.GetLogger("test2")
-		for {
-			fields := logrus.Fields{
-				"a":     1,
-				"b":     "b",
-				"e":     errors.New("test error"),
-				"c":     "ccc\nccc\tddd",
-				"d":     "\tabcd",
-				"zh_CN": "中文字符",
-			}
-
-			loggerTest2.WithFields(fields).Info("message")
-			loggerTest2.WithFields(fields).Debug("message")
-			loggerTest2.WithFields(fields).Warn("message")
-			loggerTest2.WithFields(fields).Error("message")
-
-			time.Sleep(100 * time.Millisecond)
-		}
-
-	}()
-
+	logrus_extension.InitFileHook("test.yaml")  
 
 	// 打印日志到test
 	for {
