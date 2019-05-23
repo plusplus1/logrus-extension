@@ -121,10 +121,6 @@ func (trw *lvlMutexWriter) ShouldRollover(entry *logrus.Entry) bool {
 
 func (trw *lvlMutexWriter) DoRollover(entry *logrus.Entry) (err error) {
 	debugF("DoRollover ...")
-	if trw.outputFd == nil { // outputFd is not opened
-		return nil
-	}
-
 	var fs = fslock.New(trw.lockFile)
 
 	if err = fs.Lock(); err == nil {
@@ -132,9 +128,11 @@ func (trw *lvlMutexWriter) DoRollover(entry *logrus.Entry) (err error) {
 			_ = fs.Unlock()
 		}()
 
-		_ = trw.outputFd.Sync()
-		_ = trw.outputFd.Close()
-		trw.outputFd = nil
+		if trw.outputFd != nil { // close fd
+			_ = trw.outputFd.Sync()
+			_ = trw.outputFd.Close()
+			trw.outputFd = nil
+		}
 
 		if oInfo, e1 := os.Lstat(trw.outputFile); e1 == nil { // file exists
 			if modTime := oInfo.ModTime().In(time.Local).Unix(); modTime <= trw.rolloverAt { // file should rollover
