@@ -154,6 +154,9 @@ func (trw *lvlMutexWriter) DoRollover(entry *logrus.Entry) (err error) {
 
 				if _, e2 := os.Lstat(backupFile); e2 != nil {
 					defer trw.deleteOldLog()
+
+					//TODO on windows, when log to the same file in multi process, it do rollover failed, and
+					// raises error `The process cannot access the file because it is being used by another process.`
 					err = os.Rename(trw.outputFile, backupFile)
 				}
 
