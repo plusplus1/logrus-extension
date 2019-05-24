@@ -1,5 +1,5 @@
 directory: "./logs"
 filename: "test"
 level: "error"
-
+rotate: 10s
 

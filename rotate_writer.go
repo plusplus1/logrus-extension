@@ -73,16 +73,26 @@ func newRotateWriter(level logrus.Level, dir, file string, rotateInterval string
 	if suffix == "" {
 		suffix = level.String()
 	}
-	outputFile := filepath.Join(dir, file+"."+suffix)
-	lockSign := fmt.Sprintf("%x", md5.Sum([]byte(outputFile)))
-	parts := strings.Split(outputFile, "/")
-	lockFile := filepath.Join(os.TempDir(), parts[len(parts)-1]+"."+lockSign+".lock")
 
-	w := &lvlMutexWriter{outputFile: outputFile, lockFile: lockFile}
+	var outputFile string
+	if outF, err := filepath.Abs(filepath.Join(dir, file+"."+suffix)); err != nil {
+		panic(err)
+	} else {
+		outputFile = outF
+	}
+
+	lockSign := fmt.Sprintf("%x", md5.Sum([]byte(outputFile)))
+	parts := strings.Split(outputFile, string([]rune{os.PathSeparator})) // capacity with windows
+	lockFile := filepath.Join(os.TempDir(), parts[len(parts)-1]+"."+lockSign+".lock")
+	var w = &lvlMutexWriter{outputFile: outputFile, lockFile: lockFile}
+	debugF("osTempDir=%s", os.TempDir())
+	debugF("w.lockFile=%s", w.lockFile)
+	debugF("w.outputFile=%s", w.outputFile)
 
 	if rotateInterval == "" {
 		log.Panicf("invalid logger conf, rotateInterval is empty")
 	}
+
 	iLst := rotateInterval[len(rotateInterval)-1:]
 	if unit, ok := rotateIntervalMap[iLst]; !ok {
 		log.Panicf("invalid logger conf, rotateInterval:%v", rotateInterval)
@@ -107,9 +117,9 @@ func newRotateWriter(level logrus.Level, dir, file string, rotateInterval string
 		w.rolloverAt = w.computeRolloverAt(time.Now().In(time.Local).Unix())
 	}
 
+	// ensure interface implemented
 	var _ rolloverAble = w
 	var _ entryWriter = w
-	//debugF("lockFile=%s", w.lockFile)
 
 	return w
 
@@ -220,6 +230,7 @@ func (trw *lvlMutexWriter) deleteOldLog() {
 			if suffix := strings.TrimLeft(path, prefix); len(suffix) >= 10 {
 				if t, e := time.ParseInLocation("2006-01-02", suffix[0:10], time.Local); e == nil {
 					if t.Before(baseTime) {
+						debugF("deleteOldLog: %s", path)
 						_ = os.Remove(path)
 					}
 				}

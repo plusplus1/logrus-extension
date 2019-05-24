@@ -5,6 +5,7 @@ import (
 	"errors"
 	"os"
 	"os/signal"
+	"path/filepath"
 	"syscall"
 	"time"
 
@@ -25,7 +26,7 @@ func (s sm) String() string {
 var log = stdlog.Std
 
 func testLog() {
-
+	logrus_extension.EnableDebugLog(true)
 	logrus_extension.InitFileHook("test.yaml")
 	demoMap := map[string]interface{}{
 		"aaa": 1,
@@ -52,7 +53,7 @@ func testLog() {
 			logrus.WithFields(fields).Warn("message")
 			logrus.WithFields(fields).Error("message")
 
-			time.Sleep(5 * time.Microsecond)
+			time.Sleep(1 * time.Second)
 		}
 	}
 
@@ -62,7 +63,8 @@ func testLog() {
 }
 
 func testLock() {
-	lockFile := "/tmp/abcde.lock"
+
+	lockFile := filepath.Join(os.TempDir(), "abcde.lock")
 	fc := func(id int) {
 		for i := 0; i < 100; i++ {
 			lc := fslock.New(lockFile)
